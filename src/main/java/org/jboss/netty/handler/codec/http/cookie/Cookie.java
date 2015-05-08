@@ -91,7 +91,7 @@ public interface Cookie extends Comparable<Cookie> {
      *
      * @return The maximum age of this {@link Cookie}
      */
-    long maxAge();
+    int maxAge();
 
     /**
      * Sets the maximum age of this {@link Cookie} in seconds.
@@ -102,7 +102,7 @@ public interface Cookie extends Comparable<Cookie> {
      *
      * @param maxAge The maximum age of this {@link Cookie} in seconds
      */
-    void setMaxAge(long maxAge);
+    void setMaxAge(int maxAge);
 
     /**
      * Checks to see if this {@link Cookie} is secure

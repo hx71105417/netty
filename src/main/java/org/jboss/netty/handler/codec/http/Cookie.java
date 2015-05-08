@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * An interface defining an
  * <a href="http://en.wikipedia.org/wiki/HTTP_cookie">HTTP cookie</a>.
- * @deprecated Use {@link io.netty.handler.codec.http.cookie.Cookie} instead.
+ * @deprecated Use {@link org.jboss.netty.handler.codec.http.cookie.Cookie} instead.
  */
 @Deprecated
 public interface Cookie extends org.jboss.netty.handler.codec.http.cookie.Cookie {
@@ -79,7 +79,7 @@ public interface Cookie extends org.jboss.netty.handler.codec.http.cookie.Cookie
      * @deprecated Use {@link #maxAge()} instead.
      */
     @Deprecated
-    long getMaxAge();
+    int getMaxAge();
 
     /**
      * Returns the maximum age of this {@link Cookie} in seconds or {@link Long#MIN_VALUE} if unspecified
@@ -89,7 +89,7 @@ public interface Cookie extends org.jboss.netty.handler.codec.http.cookie.Cookie
      * @deprecated Not part of RFC6265
      */
     @Deprecated
-    long maxAge();
+    int maxAge();
 
     /**
      * Sets the maximum age of this {@link Cookie} in seconds.
@@ -103,7 +103,7 @@ public interface Cookie extends org.jboss.netty.handler.codec.http.cookie.Cookie
      * @deprecated Not part of RFC6265
      */
     @Deprecated
-    void setMaxAge(long maxAge);
+    void setMaxAge(int maxAge);
 
     /**
      * @deprecated Use {@link #version()} instead.
