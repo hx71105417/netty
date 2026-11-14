@@ -15,6 +15,8 @@
  */
 package io.netty.handler.traffic;
 
+import static io.netty.util.internal.ObjectUtil.checkPositive;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.channel.Channel;
@@ -26,6 +28,7 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.FileRegion;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -164,15 +167,12 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
      *            Must be positive.
      */
     protected AbstractTrafficShapingHandler(long writeLimit, long readLimit, long checkInterval, long maxTime) {
-        if (maxTime <= 0) {
-            throw new IllegalArgumentException("maxTime must be positive");
-        }
+        this.maxTime = checkPositive(maxTime, "maxTime");
 
         userDefinedWritabilityIndex = userDefinedWritabilityIndex();
         this.writeLimit = writeLimit;
         this.readLimit = readLimit;
         this.checkInterval = checkInterval;
-        this.maxTime = maxTime;
     }
 
     /**
@@ -346,10 +346,7 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
      *            Must be positive.
      */
     public void setMaxTimeWait(long maxTime) {
-        if (maxTime <= 0) {
-            throw new IllegalArgumentException("maxTime must be positive");
-        }
-        this.maxTime = maxTime;
+        this.maxTime = checkPositive(maxTime, "maxTime");
     }
 
     /**
@@ -377,10 +374,7 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
      *              Must be positive.
      */
     public void setMaxWriteDelay(long maxWriteDelay) {
-        if (maxWriteDelay <= 0) {
-            throw new IllegalArgumentException("maxWriteDelay must be positive");
-        }
-        this.maxWriteDelay = maxWriteDelay;
+        this.maxWriteDelay = checkPositive(maxWriteDelay, "maxWriteDelay");
     }
 
     /**
@@ -585,6 +579,14 @@ public abstract class AbstractTrafficShapingHandler extends ChannelDuplexHandler
 
     abstract void submitWrite(
             ChannelHandlerContext ctx, Object msg, long size, long delay, long now, ChannelPromise promise);
+
+    /**
+     * Releases the given {@code msg} and fails the given {@code promise} with the supplied {@code cause}.
+     */
+    static void releaseAndFailQueuedWrite(Object msg, ChannelPromise promise, Throwable cause) {
+        ReferenceCountUtil.safeRelease(msg);
+        promise.tryFailure(cause);
+    }
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) throws Exception {

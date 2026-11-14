@@ -35,10 +35,19 @@ public class SpdyFrameEncoder {
      * Creates a new instance with the specified {@code spdyVersion}.
      */
     public SpdyFrameEncoder(SpdyVersion spdyVersion) {
-        version = ObjectUtil.checkNotNull(spdyVersion, "spdyVersion").getVersion();
+        version = ObjectUtil.checkNotNull(spdyVersion, "spdyVersion").version();
     }
 
-    private void writeControlFrameHeader(ByteBuf buffer, int type, byte flags, int length) {
+    // The frame length is a 24-bit field: a longer frame would be written with a wrong length.
+    private static int checkLength(int length) {
+        if (length > SPDY_MAX_LENGTH) {
+            throw new IllegalArgumentException(
+                    "frame length: " + length + " (expected: <= " + SPDY_MAX_LENGTH + ')');
+        }
+        return length;
+    }
+
+    protected void writeControlFrameHeader(ByteBuf buffer, int type, byte flags, int length) {
         buffer.writeShort(version | 0x8000);
         buffer.writeShort(type);
         buffer.writeByte(flags);
@@ -47,7 +56,7 @@ public class SpdyFrameEncoder {
 
     public ByteBuf encodeDataFrame(ByteBufAllocator allocator, int streamId, boolean last, ByteBuf data) {
         byte flags = last ? SPDY_DATA_FLAG_FIN : 0;
-        int length = data.readableBytes();
+        int length = checkLength(data.readableBytes());
         ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
         frame.writeInt(streamId & 0x7FFFFFFF);
         frame.writeByte(flags);
@@ -63,7 +72,7 @@ public class SpdyFrameEncoder {
         if (unidirectional) {
             flags |= SPDY_FLAG_UNIDIRECTIONAL;
         }
-        int length = 10 + headerBlockLength;
+        int length = checkLength(10 + headerBlockLength);
         ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
         writeControlFrameHeader(frame, SPDY_SYN_STREAM_FRAME, flags, length);
         frame.writeInt(streamId);
@@ -76,7 +85,7 @@ public class SpdyFrameEncoder {
     public ByteBuf encodeSynReplyFrame(ByteBufAllocator allocator, int streamId, boolean last, ByteBuf headerBlock) {
         int headerBlockLength = headerBlock.readableBytes();
         byte flags = last ? SPDY_FLAG_FIN : 0;
-        int length = 4 + headerBlockLength;
+        int length = checkLength(4 + headerBlockLength);
         ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
         writeControlFrameHeader(frame, SPDY_SYN_REPLY_FRAME, flags, length);
         frame.writeInt(streamId);
@@ -100,7 +109,7 @@ public class SpdyFrameEncoder {
 
         byte flags = spdySettingsFrame.clearPreviouslyPersistedSettings() ?
                 SPDY_SETTINGS_CLEAR : 0;
-        int length = 4 + 8 * numSettings;
+        int length = checkLength(4 + 8 * numSettings);
         ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
         writeControlFrameHeader(frame, SPDY_SETTINGS_FRAME, flags, length);
         frame.writeInt(numSettings);
@@ -141,7 +150,7 @@ public class SpdyFrameEncoder {
     public ByteBuf encodeHeadersFrame(ByteBufAllocator allocator, int streamId, boolean last, ByteBuf headerBlock) {
         int headerBlockLength = headerBlock.readableBytes();
         byte flags = last ? SPDY_FLAG_FIN : 0;
-        int length = 4 + headerBlockLength;
+        int length = checkLength(4 + headerBlockLength);
         ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
         writeControlFrameHeader(frame, SPDY_HEADERS_FRAME, flags, length);
         frame.writeInt(streamId);
@@ -156,6 +165,16 @@ public class SpdyFrameEncoder {
         writeControlFrameHeader(frame, SPDY_WINDOW_UPDATE_FRAME, flags, length);
         frame.writeInt(streamId);
         frame.writeInt(deltaWindowSize);
+        return frame;
+    }
+
+    public ByteBuf encodeUnknownFrame(ByteBufAllocator allocator, int frameType, byte flags, ByteBuf data) {
+        int length = checkLength(data.readableBytes());
+        ByteBuf frame = allocator.ioBuffer(SPDY_HEADER_SIZE + length).order(ByteOrder.BIG_ENDIAN);
+        writeControlFrameHeader(frame, frameType, flags, length);
+        if (length > 0) {
+            frame.writeBytes(data, data.readerIndex(), length);
+        }
         return frame;
     }
 }

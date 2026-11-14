@@ -22,6 +22,8 @@
 
 package io.netty.util.internal;
 
+import static io.netty.util.internal.ObjectUtil.checkPositive;
+
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -49,7 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * {@code ThreadLocalRandom.current().nextX(...)} (where
  * {@code X} is {@code Int}, {@code Long}, etc).
  * When all usages are of this form, it is never possible to
- * accidently share a {@code ThreadLocalRandom} across multiple threads.
+ * accidentally share a {@code ThreadLocalRandom} across multiple threads.
  *
  * <p>This class also provides additional commonly used bounded random
  * generation methods.
@@ -312,9 +314,7 @@ public final class ThreadLocalRandom extends Random {
      * @throws IllegalArgumentException if n is not positive
      */
     public long nextLong(long n) {
-        if (n <= 0) {
-            throw new IllegalArgumentException("n must be positive");
-        }
+        checkPositive(n, "n");
 
         // Divide n by two until small enough for nextInt. On each
         // iteration (at most 31 of them but usually much less),
@@ -361,9 +361,7 @@ public final class ThreadLocalRandom extends Random {
      * @throws IllegalArgumentException if n is not positive
      */
     public double nextDouble(double n) {
-        if (n <= 0) {
-            throw new IllegalArgumentException("n must be positive");
-        }
+        checkPositive(n, "n");
         return nextDouble() * n;
     }
 
